@@ -8,4 +8,7 @@ declare module "MANIFEST" {
 
 declare module "INSTRUMENT" {}
 
+type MapToRecord<T> = T extends Map<infer K extends PropertyKey, infer V> ? Record<K, V> : never;
+
 declare const TRUST_PROXY: boolean;
+declare const PRERENDERED: MapToRecord<import("@sveltejs/kit").Builder["prerendered"]["pages"]>;

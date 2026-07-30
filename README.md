@@ -1,6 +1,11 @@
 # svelte-adapter-nitro
 
-A [SvelteKit](https://kit.svelte.dev) adapter powered by [Nitro](https://nitro.build/).
+[![npm version](https://img.shields.io/npm/v/svelte-adapter-nitro?logo=npm)](https://www.npmjs.com/package/svelte-adapter-nitro)
+[![npm downloads](https://img.shields.io/npm/dm/svelte-adapter-nitro?logo=npm)](https://www.npmjs.com/package/svelte-adapter-nitro)
+[![License](https://img.shields.io/npm/l/svelte-adapter-nitro)](./LICENSE)
+[![Node.js](https://img.shields.io/node/v/svelte-adapter-nitro?logo=node.js)](https://www.npmjs.com/package/svelte-adapter-nitro)
+
+A [SvelteKit](https://svelte.dev/docs/kit/introduction) adapter powered by [Nitro](https://nitro.build/).
 
 Deploy your SvelteKit applications across any platform supported by Nitro—including Node.js, Vercel, Cloudflare, Netlify, AWS Lambda, Bun, Deno, and more.
 
@@ -84,6 +89,33 @@ adapter({
 - Full package trace syntax using wildcards (e.g. `'pkg*'`).
 - Exclusions using a leading exclamation mark (e.g. `'!pkg'`).
 - Regular expressions (e.g. `/^@prisma\//`).
+
+## Running Code on Shutdown
+
+If your application needs to execute code when the Nitro server shuts down, define a Nitro plugin and register a `close` hook. For example, create `src/nitro/cleanup.ts`:
+
+```ts
+import { definePlugin } from "nitro";
+
+export default definePlugin((nitroApp) => {
+  nitroApp.hooks.hook("close", async () => {
+    // Close database connections, stop timers, flush telemetry, etc.
+  });
+});
+```
+
+Register the plugin through the adapter's `nitro` options:
+
+```ts
+adapter({
+  preset: "node-server",
+  nitro: {
+    plugins: ["./src/nitro/cleanup.ts"],
+  },
+});
+```
+
+The `close` hook runs during a graceful Nitro shutdown. See the [Nitro lifecycle documentation](https://nitro.build/docs/lifecycle) for available hooks and deployment-specific behavior.
 
 ## License
 

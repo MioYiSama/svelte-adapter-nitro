@@ -1,6 +1,6 @@
 {
   "name": "svelte-adapter-nitro",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "A SvelteKit adapter powered by Nitro.",
   "keywords": [
     "adapter",
@@ -43,10 +43,10 @@
     "prepublishOnly": "vp pack"
   },
   "devDependencies": {
-    "@sveltejs/kit": "^2.70.1",
+    "@sveltejs/kit": "^2.70.2",
     "@types/node": "^26.1.2",
     "nitro": "^3.0.260610-beta",
-    "typescript": "6",
+    "typescript": "^6.0.3",
     "vite": "^8.1.5",
     "vite-plus": "latest"
   },

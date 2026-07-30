@@ -1,3 +1,4 @@
+import { rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -28,7 +29,7 @@ export interface AdapterOptions {
   minify?: boolean;
 
   /**
-   * @default false
+   * @default true
    */
   sourcemap?: boolean;
 
@@ -41,7 +42,6 @@ export interface AdapterOptions {
 }
 
 const handlerScript = fileURLToPath(new URL("./handler.mjs", import.meta.url));
-const pluginScript = fileURLToPath(new URL("./plugin.mjs", import.meta.url));
 const instrumentScript = fileURLToPath(new URL("./instrument.mjs", import.meta.url));
 
 export default function adapter(options?: AdapterOptions): Adapter {
@@ -84,6 +84,17 @@ export default function adapter(options?: AdapterOptions): Adapter {
       const entryScript = path.resolve(buildDirectory, "entry.js");
       builder.copy(handlerScript, entryScript);
 
+      // Prevent vite from transforming html
+      const prerenderedPages = builder.prerendered.pages;
+      for (const [key, { file }] of prerenderedPages.entries()) {
+        const newFile = `${file}.bin`;
+        prerenderedPages.set(key, { file: newFile });
+
+        const html = path.resolve(prerenderedDirectory, file);
+        builder.copy(html, path.resolve(prerenderedDirectory, newFile));
+        await rm(html);
+      }
+
       const viteBuilder = await createBuilder({
         configFile: false,
         publicDir: false,
@@ -91,6 +102,7 @@ export default function adapter(options?: AdapterOptions): Adapter {
 
         define: {
           TRUST_PROXY: trustProxy,
+          PRERENDERED: Object.fromEntries(prerenderedPages),
         },
         resolve: {
           alias: {
@@ -105,6 +117,7 @@ export default function adapter(options?: AdapterOptions): Adapter {
         plugins: [
           nitro({
             ...nitroConfig,
+            baseURL,
             preset,
             minify,
             sourcemap,
@@ -116,7 +129,6 @@ export default function adapter(options?: AdapterOptions): Adapter {
             compressPublicAssets: precompress,
 
             serverEntry: entryScript,
-            plugins: [...(nitroConfig.plugins ?? []), pluginScript],
 
             serverAssets: [
               ...(nitroConfig.serverAssets ?? []),
@@ -124,22 +136,22 @@ export default function adapter(options?: AdapterOptions): Adapter {
                 baseName: "server",
                 dir: assetsDirectory,
               },
+              {
+                baseName: "prerendered",
+                dir: prerenderedDirectory,
+              },
             ],
             publicAssets: [
               ...(nitroConfig.publicAssets ?? []),
               {
                 dir: clientDirectory,
-                maxAge: 0,
-                baseURL,
-                fallthrough: true,
-              },
-              {
-                dir: prerenderedDirectory,
-                maxAge: 0,
-                baseURL,
+                maxAge: 31536000,
                 fallthrough: true,
               },
             ],
+            framework: {
+              name: "svelte-kit",
+            },
           }),
         ],
       });
