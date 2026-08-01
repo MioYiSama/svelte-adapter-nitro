@@ -75,16 +75,20 @@ export default function adapter(options?: AdapterOptions): Adapter {
       builder.writeClient(clientDirectory);
       builder.writePrerendered(prerenderedDirectory);
       builder.writeServer(serverDirectory);
+
+      // Collect server assets to support `read` from `$app/server`
       for (const asset of builder.findServerAssets(builder.routes)) {
         const src = path.resolve(clientDirectory, asset);
         const dst = path.resolve(assetsDirectory, asset);
         builder.copy(src, dst);
       }
 
+      // Avoid direct reference to the handler script
+      // because this will lead to an incorrect dependency graph.
       const entryScript = path.resolve(buildDirectory, "entry.js");
       builder.copy(handlerScript, entryScript);
 
-      // Prevent vite from transforming html
+      // Rename html files to prevent vite from transforming them
       const prerenderedPages = builder.prerendered.pages;
       for (const [key, { file }] of prerenderedPages.entries()) {
         const newFile = `${file}.bin`;
@@ -95,11 +99,13 @@ export default function adapter(options?: AdapterOptions): Adapter {
         await rm(html);
       }
 
+      // Use Vite's Environment API
       const viteBuilder = await createBuilder({
         configFile: false,
         publicDir: false,
         appType: "custom",
 
+        // Inject configurations into the handler
         define: {
           TRUST_PROXY: trustProxy,
           PRERENDERED: Object.fromEntries(prerenderedPages),

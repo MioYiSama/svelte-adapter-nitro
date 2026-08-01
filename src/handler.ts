@@ -9,8 +9,11 @@ import { html, redirect, createReadableStream } from "./util";
 
 const server = new Server(manifest);
 await server.init({
+  // Nitro allows us to universally access environment variables
+  // using process.env or import.meta.env or the runtime config.
   env: process.env as Record<string, string>,
   async read(file) {
+    // https://nitro.build/docs/assets#server-assets
     const data = await useStorage("assets/server").getItemRaw(file);
     return createReadableStream(data);
   },
