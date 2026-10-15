@@ -9,17 +9,26 @@ A [SvelteKit](https://svelte.dev/docs/kit/introduction) adapter powered by [Nitr
 
 Deploy your SvelteKit applications across any platform supported by Nitro—including Node.js, Vercel, Cloudflare, Netlify, AWS Lambda, Bun, Deno, and more.
 
+## Compatibility
+
+| Adapter version | Supported SvelteKit version |
+| --------------- | --------------------------- |
+| v0.0.x          | SvelteKit 2 only            |
+| v0.1.x          | SvelteKit 3 only            |
+
+For SvelteKit 2 projects, install `svelte-adapter-nitro@0.0`. The installation, configuration, and options below apply to v0.1.x and SvelteKit 3.
+
 ## Installation
 
 ```bash
-npm install -D svelte-adapter-nitro nitro
+npm install -D svelte-adapter-nitro@0.1 nitro@3.0.260903-beta
 # or
-pnpm add -D svelte-adapter-nitro nitro
+pnpm add -D svelte-adapter-nitro@0.1 nitro@3.0.260903-beta
 # or
-bun add -d svelte-adapter-nitro nitro
+bun add -d svelte-adapter-nitro@0.1 nitro@3.0.260903-beta
 ```
 
-> **Note:** `nitro` and `@sveltejs/kit` are required peer dependencies.
+> **Note:** v0.1.x requires SvelteKit 3, Nitro 3, and Vite 8 or later as peer dependencies.
 
 ## Usage
 
@@ -34,41 +43,25 @@ export default defineConfig({
   plugins: [
     sveltekit({
       adapter: adapter({
-        preset: "node-server",
+        nitro: {
+          preset: "node-server",
+        },
       }),
     }),
   ],
 });
 ```
 
-Or in `svelte.config.js`:
-
-```js
-import adapter from "svelte-adapter-nitro";
-
-/** @type {import('@sveltejs/kit').Config} */
-const config = {
-  kit: {
-    adapter: adapter({
-      preset: "node-server",
-    }),
-  },
-};
-
-export default config;
-```
+SvelteKit 3 configuration belongs in the `sveltekit()` Vite plugin, not `svelte.config.js`.
 
 ## Options
 
-| Option        | Type                         | Default         | Description                                                                                                    |
-| ------------- | ---------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------- |
-| `preset`      | `NitroConfig["preset"]`      | `'node-server'` | Target deployment preset for Nitro (e.g. `'vercel'`, `'cloudflare-pages'`, `'aws-lambda'`, `'bun'`, `'deno'`). |
-| `out`         | `string`                     | `'dist'`        | Output directory for the build.                                                                                |
-| `precompress` | `boolean \| CompressOptions` | `false`         | Enable pre-compression of public assets and prerendered routes (gzip, brotli, zstd).                           |
-| `minify`      | `boolean`                    | `true`          | Minify the server bundle output.                                                                               |
-| `sourcemap`   | `boolean`                    | `true`          | Generate sourcemaps for the server build.                                                                      |
-| `trustProxy`  | `boolean`                    | `true`          | Trust `X-Forwarded-For` proxy headers for `event.getClientAddress()`.                                          |
-| `nitro`       | `NitroConfig`                | `{}`            | Additional Nitro options passed directly to the Nitro engine.                                                  |
+| Option       | Type          | Default | Description                                                           |
+| ------------ | ------------- | ------- | --------------------------------------------------------------------- |
+| `trustProxy` | `boolean`     | `true`  | Trust `X-Forwarded-For` proxy headers for `event.getClientAddress()`. |
+| `nitro`      | `NitroConfig` | `{}`    | Nitro configuration, including deployment presets and build options.  |
+
+Pass options such as `preset`, `output`, `minify`, and `sourcemap` through `nitro`, not at the adapter's top level. The old top-level `out` and `precompress` options are no longer supported; configure output and asset compression through Nitro.
 
 ### Prerendered Routes
 
@@ -76,14 +69,31 @@ Prerendered pages are automatically mapped to Nitro `routeRules` using their gen
 
 Explicit `nitro.routeRules` options take precedence over generated rules; other rule properties are merged.
 
+## Server Instrumentation
+
+Create `src/instrumentation.server.ts` to initialize tracing or other server instrumentation. Before Nitro bundling, the adapter wraps the SvelteKit handler with an entrypoint that initializes runtime environment variables declared in `src/env.ts`, dynamically loads instrumentation, then dynamically loads the application handler.
+
+To also enable SvelteKit's built-in OpenTelemetry spans, configure the SvelteKit Vite plugin:
+
+```ts
+sveltekit({
+  adapter: adapter(),
+  tracing: {
+    server: true,
+  },
+});
+```
+
+Instrumentation requires ES module output with code splitting; single-file/IIFE builds cannot use this startup sequence. Choose an instrumentation SDK compatible with your deployment runtime—Node.js SDKs do not automatically work on edge runtimes.
+
 ## Bundling Native Production Dependencies
 
 If your application relies on native production dependencies (e.g., C/C++ native modules like `sharp`, `canvas`, database drivers, or Prisma) or you need external packages traced and bundled into the production output, pass Nitro's `traceDeps` array via `nitro`:
 
 ```ts
 adapter({
-  preset: "node-server",
   nitro: {
+    preset: "node-server",
     // Trace specific packages into the build output
     traceDeps: ["sharp", "prisma*"],
   },
@@ -114,8 +124,8 @@ Register the plugin through the adapter's `nitro` options:
 
 ```ts
 adapter({
-  preset: "node-server",
   nitro: {
+    preset: "node-server",
     plugins: ["./src/nitro/cleanup.ts"],
   },
 });

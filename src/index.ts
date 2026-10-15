@@ -27,7 +27,7 @@ export default function adapter(options?: AdapterOptions): Adapter {
     name: pkg.name,
     supports: {
       read: () => true,
-      instrumentation: () => false,
+      instrumentation: () => true,
     },
     async adapt(builder) {
       const buildDir = builder.getBuildDirectory("nitro");
@@ -43,9 +43,27 @@ export default function adapter(options?: AdapterOptions): Adapter {
       for (const asset of builder.findServerAssets(builder.routes)) {
         builder.copy(path.resolve(clientDir, asset), path.resolve(assetsDir, asset));
       }
-
       builder.copy(handlerScript, path.join(serverDir, "index.js"));
 
+      if (builder.hasServerInstrumentationFile()) {
+        builder.instrument({
+          entrypoint: path.join(serverDir, "index.js"),
+          instrumentation: path.join(builder.getServerDirectory(), "instrumentation.server.js"),
+          initializer: builder.createInstrumentationInitializer({ outputDirectory: buildDir }),
+          module: {
+            // Static imports let Nitro hoist env reads ahead of initialization.
+            generateText: ({ initializer, instrumentation, start }) =>
+              [
+                `import ${JSON.stringify(`./${initializer}`)};`,
+                `await import(${JSON.stringify(`./${instrumentation}`)});`,
+                `const { default: handler } = await import(${JSON.stringify(`./${start}`)});`,
+                "export default handler;",
+              ].join("\n"),
+          },
+        });
+      }
+
+      // Mapping prerendered routes
       const routeRules: NonNullable<NitroConfig["routeRules"]> = {};
       for (const [route, { file }] of builder.prerendered.pages) {
         routeRules[route] = { proxy: `/${file}` };
@@ -54,6 +72,7 @@ export default function adapter(options?: AdapterOptions): Adapter {
         routeRules[route] = { redirect: { to: location, status } };
       }
 
+      // Call nitro to build the app
       const nitro = await createNitro(
         defu(nitroConfig, {
           framework: { name: "svelte-kit", version: "3" },
