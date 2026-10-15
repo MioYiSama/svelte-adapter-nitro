@@ -1,168 +1,68 @@
-import { rm } from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import * as url from "node:url";
 
 import type { Adapter } from "@sveltejs/kit";
+import { defu } from "defu";
+import { build, copyPublicAssets, createNitro, prepare } from "nitro/builder";
 import type { NitroConfig } from "nitro/types";
-import { nitro } from "nitro/vite";
-import { createBuilder } from "vite";
 
-export interface AdapterOptions {
-  /**
-   * @default node-server
-   */
-  preset?: NitroConfig["preset"];
+import pkg from "../package.json";
 
-  /**
-   * @default dist
-   */
-  out?: string;
-
-  /**
-   * @default false
-   */
-  precompress?: NitroConfig["compressPublicAssets"];
-
-  /**
-   * @default true
-   */
-  minify?: boolean;
-
-  /**
-   * @default true
-   */
-  sourcemap?: boolean;
-
+interface AdapterOptions {
   /**
    * @default true
    */
   trustProxy?: boolean;
 
-  nitro?: Omit<NitroConfig, "preset" | "output" | "compressPublicAssets" | "serverEntry">;
+  nitro?: NitroConfig;
 }
 
-const handlerScript = fileURLToPath(new URL("./handler.mjs", import.meta.url));
-const instrumentScript = fileURLToPath(new URL("./instrument.mjs", import.meta.url));
+const handlerScript = url.fileURLToPath(new URL("./handler.mjs", import.meta.url));
 
 export default function adapter(options?: AdapterOptions): Adapter {
-  const {
-    preset = "node-server",
-    out = "dist",
-    precompress = false,
-    minify = true,
-    sourcemap = true,
-    trustProxy = true,
-    nitro: nitroConfig = {},
-  } = options ?? {};
+  const { trustProxy = true, nitro: nitroConfig = {} } = options ?? {};
 
   return {
-    name: "svelte-adapter-nitro",
+    name: pkg.name,
     supports: {
       read: () => true,
-      instrumentation: () => true,
+      instrumentation: () => false,
     },
     async adapt(builder) {
-      const buildDirectory = builder.getBuildDirectory("nitro");
-      const clientDirectory = path.resolve(buildDirectory, "client");
-      const prerenderedDirectory = path.resolve(buildDirectory, "prerendered");
-      const serverDirectory = path.resolve(buildDirectory, "server");
-      const assetsDirectory = path.resolve(buildDirectory, "assets");
-      const baseURL = builder.config.kit.paths.base || "/";
+      const buildDir = builder.getBuildDirectory("nitro");
+      const clientDir = path.join(buildDir, "client");
+      const prerenderedDir = path.join(buildDir, "prerendered");
+      const serverDir = path.join(buildDir, "server");
+      const assetsDir = path.join(buildDir, "assets");
 
-      builder.rimraf(buildDirectory);
-      builder.mkdirp(buildDirectory);
-
-      builder.writeClient(clientDirectory);
-      builder.writePrerendered(prerenderedDirectory);
-      builder.writeServer(serverDirectory);
-
-      // Collect server assets to support `read` from `$app/server`
+      await fs.rm(buildDir, { force: true, recursive: true });
+      builder.writeClient(clientDir);
+      builder.writePrerendered(prerenderedDir);
+      builder.generateServerInstance(path.join(serverDir, "server.js"));
       for (const asset of builder.findServerAssets(builder.routes)) {
-        const src = path.resolve(clientDirectory, asset);
-        const dst = path.resolve(assetsDirectory, asset);
-        builder.copy(src, dst);
+        builder.copy(path.resolve(clientDir, asset), path.resolve(assetsDir, asset));
       }
 
-      // Avoid direct reference to the handler script
-      // because this will lead to an incorrect dependency graph.
-      const entryScript = path.resolve(buildDirectory, "entry.js");
-      builder.copy(handlerScript, entryScript);
+      builder.copy(handlerScript, path.join(serverDir, "index.js"));
 
-      // Rename html files to prevent vite from transforming them
-      const prerenderedPages = builder.prerendered.pages;
-      for (const [key, { file }] of prerenderedPages.entries()) {
-        const newFile = `${file}.bin`;
-        prerenderedPages.set(key, { file: newFile });
+      const nitro = await createNitro(
+        defu(nitroConfig, {
+          baseURL: builder.config.paths.base,
+          serverEntry: path.join(serverDir, "index.js"),
+          publicAssets: [{ dir: clientDir, fallthrough: true }],
+          serverAssets: [
+            { baseName: "assets", dir: assetsDir },
+            { baseName: "prerendered", dir: prerenderedDir },
+          ],
+          alias: { "#SERVER": path.join(serverDir, "server.js") },
+          framework: { name: "svelte-kit" },
+        } satisfies NitroConfig),
+      );
 
-        const html = path.resolve(prerenderedDirectory, file);
-        builder.copy(html, path.resolve(prerenderedDirectory, newFile));
-        await rm(html);
-      }
-
-      // Use Vite's Environment API
-      const viteBuilder = await createBuilder({
-        configFile: false,
-        publicDir: false,
-        appType: "custom",
-
-        // Inject configurations into the handler
-        define: {
-          TRUST_PROXY: trustProxy,
-          PRERENDERED: Object.fromEntries(prerenderedPages),
-        },
-        resolve: {
-          alias: {
-            SERVER: path.resolve(serverDirectory, "index.js"),
-            MANIFEST: path.resolve(serverDirectory, "manifest.js"),
-            INSTRUMENT: builder.hasServerInstrumentationFile()
-              ? path.resolve(serverDirectory, "instrumentation.server.js")
-              : instrumentScript,
-          },
-        },
-
-        plugins: [
-          nitro({
-            ...nitroConfig,
-            baseURL,
-            preset,
-            minify,
-            sourcemap,
-            output: {
-              dir: out,
-              publicDir: path.resolve(out, "public"),
-              serverDir: path.resolve(out, "server"),
-            },
-            compressPublicAssets: precompress,
-
-            serverEntry: entryScript,
-
-            serverAssets: [
-              ...(nitroConfig.serverAssets ?? []),
-              {
-                baseName: "server",
-                dir: assetsDirectory,
-              },
-              {
-                baseName: "prerendered",
-                dir: prerenderedDirectory,
-              },
-            ],
-            publicAssets: [
-              ...(nitroConfig.publicAssets ?? []),
-              {
-                dir: clientDirectory,
-                maxAge: 31536000,
-                fallthrough: true,
-              },
-            ],
-            framework: {
-              name: "svelte-kit",
-            },
-          }),
-        ],
-      });
-
-      await viteBuilder.buildApp();
+      await prepare(nitro);
+      await copyPublicAssets(nitro);
+      await build(nitro);
     },
   };
 }

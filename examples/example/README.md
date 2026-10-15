@@ -15,7 +15,21 @@ To recreate this project with the same configuration:
 
 ```sh
 # recreate this project
-bun x sv@0.16.6 create --template demo --types ts --install bun example
+bun x sv@1.1.1 create --template demo --types ts --add enhanced-img --install bun example
+```
+
+## Adding features
+
+Add features to your project with `sv add`:
+
+```sh
+npx sv add
+```
+
+For example, to add Tailwind CSS:
+
+```sh
+npx sv add tailwindcss
 ```
 
 ## Developing

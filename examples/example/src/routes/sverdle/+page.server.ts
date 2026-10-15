@@ -1,7 +1,12 @@
+import { read } from "$app/server";
 import { fail } from "@sveltejs/kit";
 
 import type { Actions, PageServerLoad } from "./$types";
 import { Game } from "./game.ts";
+import somefile from "./somefile.txt";
+
+const asset = read(somefile);
+await asset.text();
 
 export const load = (({ cookies }) => {
   const game = new Game(cookies.get("sverdle"));
@@ -34,7 +39,7 @@ export const actions = {
     const game = new Game(cookies.get("sverdle"));
 
     const data = await request.formData();
-    const key = data.get("key");
+    const key = (data.get("key") as string) ?? "";
 
     const i = game.answers.length;
 
@@ -64,7 +69,7 @@ export const actions = {
     cookies.set("sverdle", game.toString(), { path: "/" });
   },
 
-  restart: async ({ cookies }) => {
+  restart: ({ cookies }) => {
     cookies.delete("sverdle", { path: "/" });
   },
 } satisfies Actions;

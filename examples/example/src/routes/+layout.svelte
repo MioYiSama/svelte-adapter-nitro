@@ -1,8 +1,9 @@
 <script lang="ts">
+	import type { LayoutProps } from './$types';
 	import Header from './Header.svelte';
 	import './layout.css';
 
-	let { children } = $props();
+	let { children }: LayoutProps = $props();
 </script>
 
 <div class="app">

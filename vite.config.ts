@@ -11,14 +11,12 @@ export default defineConfig({
     entry: {
       index: "src/index.ts",
       handler: "src/handler.ts",
-      instrument: "src/instrument.ts",
     },
     outDir: "dist",
     dts: true,
-    sourcemap: true,
-    minify: true,
     deps: {
-      neverBundle: ["SERVER", "MANIFEST", "INSTRUMENT", "nitro", "h3", "srvx"],
+      onlyBundle: false,
+      neverBundle: ["#SERVER", "h3"],
     },
   },
   fmt: {
