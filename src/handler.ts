@@ -4,28 +4,20 @@ import { useStorage } from "nitro/storage";
 
 import { server } from "#SERVER";
 
-import { createReadableStream } from "./util";
-
 await server.init({
   env: process.env,
   async read(file) {
-    const result = await useStorage("assets").getItemRaw(file);
-    return createReadableStream(result);
+    const asset = await useStorage("assets:assets").getItem(file);
+    if (asset === null || typeof asset !== "string") return null;
+
+    return new Blob([asset]).stream();
   },
 });
 
-export default defineHandler({
-  middleware: [
-    async (event, next) => {
-      // TODO: prerendered page
-      return next();
+export default defineHandler(async (event) => {
+  return await server.respond(event.req, {
+    getClientAddress() {
+      return getRequestIP(event, { xForwardedFor: __TRUST_PROXY__ }) ?? "";
     },
-  ],
-  async handler(event) {
-    return await server.respond(event.req, {
-      getClientAddress() {
-        return getRequestIP(event, { xForwardedFor: TRUST_PROXY }) ?? "";
-      },
-    });
-  },
+  });
 });

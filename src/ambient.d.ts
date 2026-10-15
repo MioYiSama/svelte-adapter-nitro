@@ -3,4 +3,4 @@ declare module "#SERVER" {
   export const server: Server;
 }
 
-declare const TRUST_PROXY: boolean;
+declare const __TRUST_PROXY__: boolean;

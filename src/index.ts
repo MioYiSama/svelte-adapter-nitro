@@ -48,15 +48,18 @@ export default function adapter(options?: AdapterOptions): Adapter {
 
       const nitro = await createNitro(
         defu(nitroConfig, {
+          framework: { name: "svelte-kit", version: "3" },
           baseURL: builder.config.paths.base,
           serverEntry: path.join(serverDir, "index.js"),
-          publicAssets: [{ dir: clientDir, fallthrough: true }],
-          serverAssets: [
-            { baseName: "assets", dir: assetsDir },
-            { baseName: "prerendered", dir: prerenderedDir },
+          publicAssets: [
+            { dir: clientDir, fallthrough: true },
+            { dir: prerenderedDir, fallthrough: true },
           ],
+          serverAssets: [{ baseName: "assets", dir: assetsDir }],
           alias: { "#SERVER": path.join(serverDir, "server.js") },
-          framework: { name: "svelte-kit" },
+          replace: {
+            __TRUST_PROXY__: JSON.stringify(trustProxy),
+          },
         } satisfies NitroConfig),
       );
 

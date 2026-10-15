@@ -1,12 +1,7 @@
-import { read } from "$app/server";
 import { fail } from "@sveltejs/kit";
 
 import type { Actions, PageServerLoad } from "./$types";
 import { Game } from "./game.ts";
-import somefile from "./somefile.txt";
-
-const asset = read(somefile);
-await asset.text();
 
 export const load = (({ cookies }) => {
   const game = new Game(cookies.get("sverdle"));
