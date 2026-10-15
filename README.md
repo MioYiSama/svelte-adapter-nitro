@@ -70,6 +70,12 @@ export default config;
 | `trustProxy`  | `boolean`                    | `true`          | Trust `X-Forwarded-For` proxy headers for `event.getClientAddress()`.                                          |
 | `nitro`       | `NitroConfig`                | `{}`            | Additional Nitro options passed directly to the Nitro engine.                                                  |
 
+### Prerendered Routes
+
+Prerendered pages are automatically mapped to Nitro `routeRules` using their generated files: `/` proxies to `/index.html`, `/about` to `/about.html`, and `/about/` to `/about/index.html`. Prerendered redirects preserve their target and HTTP status. Prerendered assets are served directly from the public assets directory.
+
+Explicit `nitro.routeRules` options take precedence over generated rules; other rule properties are merged.
+
 ## Bundling Native Production Dependencies
 
 If your application relies on native production dependencies (e.g., C/C++ native modules like `sharp`, `canvas`, database drivers, or Prisma) or you need external packages traced and bundled into the production output, pass Nitro's `traceDeps` array via `nitro`:

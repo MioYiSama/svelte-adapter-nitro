@@ -46,11 +46,20 @@ export default function adapter(options?: AdapterOptions): Adapter {
 
       builder.copy(handlerScript, path.join(serverDir, "index.js"));
 
+      const routeRules: NonNullable<NitroConfig["routeRules"]> = {};
+      for (const [route, { file }] of builder.prerendered.pages) {
+        routeRules[route] = { proxy: `/${file}` };
+      }
+      for (const [route, { status, location }] of builder.prerendered.redirects) {
+        routeRules[route] = { redirect: { to: location, status } };
+      }
+
       const nitro = await createNitro(
         defu(nitroConfig, {
           framework: { name: "svelte-kit", version: "3" },
           baseURL: builder.config.paths.base,
           serverEntry: path.join(serverDir, "index.js"),
+          routeRules,
           publicAssets: [
             { dir: clientDir, fallthrough: true },
             { dir: prerenderedDir, fallthrough: true },
