@@ -11,24 +11,25 @@ Deploy your SvelteKit applications across any platform supported by Nitro—incl
 
 ## Compatibility
 
-| Adapter version | Supported SvelteKit version |
-| --------------- | --------------------------- |
-| v0.0.x          | SvelteKit 2 only            |
-| v0.1.x          | SvelteKit 3 only            |
+| Adapter version | Supported SvelteKit version | Supported Nitro version |
+| --------------- | --------------------------- | ----------------------- |
+| v0.0.x          | SvelteKit 2 only            | Nitro 3 beta            |
+| v0.1.x          | SvelteKit 3 only            | `3.0.260903-beta`       |
+| v0.2.x          | SvelteKit 3 only            | `3.0.261029-rc`         |
 
-For SvelteKit 2 projects, install `svelte-adapter-nitro@0.0`. The installation, configuration, and options below apply to v0.1.x and SvelteKit 3.
+For SvelteKit 2 projects, install `svelte-adapter-nitro@0.0`. The installation, configuration, and options below apply to v0.2.x and SvelteKit 3.
 
 ## Installation
 
 ```bash
-npm install -D svelte-adapter-nitro@0.1 nitro@3.0.260903-beta
+npm install -D svelte-adapter-nitro@0.2 nitro@3.0.261029-rc
 # or
-pnpm add -D svelte-adapter-nitro@0.1 nitro@3.0.260903-beta
+pnpm add -D svelte-adapter-nitro@0.2 nitro@3.0.261029-rc
 # or
-bun add -d svelte-adapter-nitro@0.1 nitro@3.0.260903-beta
+bun add -d svelte-adapter-nitro@0.2 nitro@3.0.261029-rc
 ```
 
-> **Note:** v0.1.x requires SvelteKit 3, Nitro 3, and Vite 8 or later as peer dependencies.
+> **Note:** v0.2.x requires Node.js 22.22.0 or later, and SvelteKit 3, Nitro 3 RC, and Vite 8 or later as peer dependencies.
 
 ## Usage
 

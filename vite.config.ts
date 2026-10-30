@@ -1,3 +1,5 @@
+import * as url from "node:url";
+
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
@@ -13,7 +15,13 @@ export default defineConfig({
       handler: "src/handler.ts",
     },
     outDir: "dist",
-    dts: true,
+    dts: {
+      // tsdown only auto-detects TypeScript 7.0; point it at the 7.x native compiler explicitly.
+      generator: "tsgo",
+      tsgo: {
+        path: url.fileURLToPath(new URL("bin/tsc", import.meta.resolve("typescript/package.json"))),
+      },
+    },
     deps: {
       onlyBundle: false,
       neverBundle: ["#SERVER", "h3"],

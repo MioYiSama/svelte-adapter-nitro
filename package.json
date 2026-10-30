@@ -1,6 +1,6 @@
 {
   "name": "svelte-adapter-nitro",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A SvelteKit adapter powered by Nitro.",
   "keywords": [
     "adapter",
@@ -42,29 +42,30 @@
     "prepublishOnly": "vp pack"
   },
   "dependencies": {
-    "defu": "^6.1.7"
+    "defu": "^6.1.7",
+    "unstorage": "^2.0.0-alpha.10"
   },
   "devDependencies": {
-    "@sveltejs/kit": "^3",
-    "@types/node": "^26.6.5",
-    "nitro": "^3.0.260903-beta",
-    "typescript": "^6.0.3",
-    "vite": "npm:@voidzero-dev/vite-plus-core@1.2.0",
-    "vite-plus": "1.2.0"
+    "@sveltejs/kit": "^3.1.1",
+    "@types/node": "^26.6.6",
+    "nitro": "^3.0.261029-rc",
+    "typescript": "^7.1.0-beta",
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.4.0",
+    "vite-plus": "1.4.0"
   },
   "peerDependencies": {
     "@sveltejs/kit": ">=3",
-    "nitro": "^3.0.260903-beta",
+    "nitro": "^3.0.261029-rc",
     "vite": ">=8"
   },
   "devEngines": {
     "packageManager": {
       "name": "bun",
-      "version": "1.4.3",
+      "version": "1.4.4",
       "onFail": "download"
     }
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.22.0"
   }
 }

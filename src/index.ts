@@ -88,6 +88,13 @@ export default function adapter(options?: AdapterOptions): Adapter {
           replace: {
             __TRUST_PROXY__: JSON.stringify(trustProxy),
           },
+          // Nitro installs unstorage on demand into the app; use the adapter's own copy instead.
+          // rolldown needs no entry: Nitro resolves it through the app's vite.
+          deps: {
+            paths: {
+              unstorage: import.meta.resolve("unstorage"),
+            },
+          },
         } satisfies NitroConfig),
       );
 
